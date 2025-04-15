@@ -6,11 +6,12 @@
 #
 # source ~/.profile
 # workon cv
-# python colorpicker.py -f HSV -i name_of_image_file.jpg
+# python3 colorpicker.py -f HSV -i green_block.jpg
 #
 # where name_of_image_file.jpg is the name of the file
 # for which you want to create a HSV mask
-
+#ll 33,100,36
+#ul 255,255,255
 
 import cv2
 import argparse
