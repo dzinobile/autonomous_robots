@@ -6,7 +6,7 @@
 #
 # source ~/.profile
 # workon cv
-# python3 dc_colorpicker.py -f HSV -p cropped/1_cropped.jpg
+# python3 dc_colorpicker.py -f HSV -i cropped/1_cropped.jpg -p
 #
 # where name_of_image_file.jpg is the name of the file
 # for which you want to create a HSV mask
@@ -17,8 +17,8 @@ import argparse
 import imutils
 from operator import xor
 
-block_color = input("Enter block color: ")
-block_distance = input("Enter block distance: ")
+#block_color = input("Enter block color: ")
+#block_distance = input("Enter block distance: ")
 
 
 def callback(value):
@@ -52,7 +52,7 @@ def get_arguments():
 
 	if not args['filter'].upper() in ['RGB', 'HSV']:
 		ap.error("Please speciy a correct filter.")
-	print(args)
+	#print(args)
 	return args
 
 
@@ -115,10 +115,10 @@ def main():
 			cv2.imshow("Thresh", thresh)
 
 		if cv2.waitKey(1) & 0xFF is ord('q'):
-			with open(block_color+"_"+block_distance+".txt","w") as file:
-				file.write("Lower HSV limit: "+str(v1_min)+","+str(v2_min)+","+str(v3_min)+"\n")
-				file.write("Upper HSV limit: "+str(v1_max)+","+str(v2_max)+","+str(v3_max))
-				file.close()
+			#with open(block_color+"_"+block_distance+".txt","w") as file:
+				#file.write("Lower HSV limit: "+str(v1_min)+","+str(v2_min)+","+str(v3_min)+"\n")
+				#file.write("Upper HSV limit: "+str(v1_max)+","+str(v2_max)+","+str(v3_max))
+				#file.close()
 			break
 
 

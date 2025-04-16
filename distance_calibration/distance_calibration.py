@@ -1,97 +1,96 @@
-from picamera.array import PiRGBArray
-from picamera import PiCamera
 import cv2
 import numpy as np
-import time
 from matplotlib import pyplot as plt
-from datetime import datetime
 
-#initialize camera
-camera = PiCamera()
-camera.resolution = (640, 480)
-camera.framerate = 10
-rawCapture = PiRGBArray(camera, size=(640,480))
+target_distances = np.arange(0.1,1.3,0.1)
+target_distances = np.round(target_distances,1)
+lower_bound_red = np.array([133,111,100])
+upper_bound_red = np.array([255,255,255])
+lower_bound_green = np.array([36,50,79])
+upper_bound_green = np.array([73,255,255])
+lower_bound_blue = np.array([74,25,0])
+upper_bound_blue = np.array([114,255,255])
 
-#warmup
-time.sleep(0.1)
+red_width = []
+red_height = []
+blue_width = []
+blue_height = []
+green_width = []
+green_height = []
 
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = None
-
-target_distances_arange = np.arange(0.1,1.3,0.1)
-target_distances = []
-for item in target_distances_arange:
-	target_distances.append(round(item,1))
-print(target_distances)
-heights = []
-widths = []
-
-lower_bound = np.array([52,40,31]) #lower bound for green light search
-upper_bound = np.array([112,255,255]) #upper bound for green light search
-index = 0
 
 with open("distance_calibration.txt","w") as file:
-	file.close()
 
+	for i in range(1,13):
+		img = cv2.imread("cropped/"+str(i)+"_cropped.jpg")
+		img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
+		red_mask = cv2.inRange(img_hsv,lower_bound_red,upper_bound_red)
+		green_mask = cv2.inRange(img_hsv,lower_bound_green,upper_bound_green)
+		blue_mask = cv2.inRange(img_hsv,lower_bound_blue,upper_bound_blue)
 
-for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-		#grab current frame
+		red_contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+		green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+		blue_contours, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+		if len(red_contours) > 0:
+			largest_contour = max(red_contours, key=cv2.contourArea)
+			rect = cv2.minAreaRect(largest_contour)
+			rxy, rwh, ra = rect
+			rw,rh = rwh
+			if rh < rw:
+				rw,rh = rh,rw
+				rwh = (rw,rh)
+			box = cv2.boxPoints(rect)
+			box = np.int0(box)
+			cv2.drawContours(img, [box], 0, (0,0,255), 1)
+			file.write(str(target_distances[i-1])+",red,"+str(rwh)+"\n")
+			red_width.append(round(rwh[0]))
+			red_height.append(round(rwh[1]))
+
+		if len(green_contours) > 0:
+			largest_contour = max(green_contours, key=cv2.contourArea)
+			rect = cv2.minAreaRect(largest_contour)
+			gxy, gwh, ga = rect
+			gw,gh = gwh
+			if gh < gw:
+				gw,gh = gh,gw
+				gwh = (gw,gh)
+			box = cv2.boxPoints(rect)
+			box = np.int0(box)
+			cv2.drawContours(img, [box], 0, (0,255,0), 1)
+			file.write(str(target_distances[i-1])+",green,"+str(gwh)+"\n")
+			green_width.append(round(gwh[0]))
+			green_height.append(round(gwh[1]))
 		
-	image = frame.array[0:220]
-	image = cv2.flip(image, -1)
-	
-	text1 = str(target_distances[index])
-	#text2 = "then press enter"
 
-	cv2.putText(image, text1, (0,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0),2)
-	#cv2.putText(image, text2, (0,75), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0),2)
-	image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) #convert image to hsv for mask
+		if len(blue_contours) > 0:
+			largest_contour = max(blue_contours, key=cv2.contourArea)
+			rect = cv2.minAreaRect(largest_contour)
+			bxy, bwh, ba = rect
+			bw,bh = bwh
+			if bh < bw:
+				bw, bh = bh, bw
+				bwh = (bw,bh)
+			box = cv2.boxPoints(rect)
+			box = np.int0(box)
+			cv2.drawContours(img, [box], 0, (255,0,0), 1)
+			file.write(str(target_distances[i-1])+",blue,"+str(bwh)+"\n")
+			blue_width.append(round(bwh[0]))
+			blue_height.append(round(bwh[1]))
 		
+		cv2.imwrite("boxed/"+str(i)+".jpg",img)
 
-	mask = cv2.inRange(image_hsv, lower_bound, upper_bound) #create mask based on bounds
-		
-	#find outer contours of mask
-	contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) 
+plt.plot(target_distances,blue_width,label='blue width')
+plt.plot(target_distances,blue_height,label='blue height')
+plt.plot(target_distances,red_height,label='red height')
+plt.plot(target_distances,red_width,label='red width')
+plt.plot(target_distances,green_height,label='green height')
+plt.plot(target_distances,green_width,label='green width')
+plt.legend()
+plt.show()
 
-		#create tracking circle and crosshairs based on largest contour
-	if len(contours) > 0:
-		largest_contour = max(contours, key=cv2.contourArea)
-		rect = cv2.minAreaRect(largest_contour)
-		box = cv2.boxPoints(rect)
-		box = np.int0(box)
-		cv2.drawContours(image, [box], 0, 255, 2)
-	#show the frame to our screen
-	cv2.imshow("Frame", image)
-	
-	key = cv2.waitKey(1) & 0xFF
-	if key == ord("\r"):
-		scr_time = datetime.now()
-		scr_name = scr_time.strftime("%d-%m-%Y-%H_%M_%S")
-		if len(contours) > 0:
-			with open(scr_name+".txt","a") as file:
-				height = round(rect[1][0])
-				width = round(rect[1][1])
-				heights.append(height)
-				widths.append(width)
-				file.write(str(target_distances[index])+","+str(width)+","+str(height)+"\n")
-				file.close()
-			print(str(target_distances[index])+" [m] captured")
-		
-			index += 1
-			
-	rawCapture.truncate(0)
-	#press the q key to stop the stream
-	if key == ord("q"):
-		break	
-cv2.destroyAllWindows()
-i=len(heights)
-plt.plot(target_distances[:i],heights, label='height')
-plt.plot(target_distances[:i],widths, label='width')
-plt.xlabel("target distance")
-plt.legend(loc='upper right', fontsize='small', frameon=True)
 
-plt.savefig(scr_name+".jpg")
 
 	
 	
