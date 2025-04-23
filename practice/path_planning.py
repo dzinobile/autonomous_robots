@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import heapq
+from matplotlib import pyplot as plt
 
 h = 366
 w = 366
@@ -232,7 +233,20 @@ for path in all_paths:
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
+all_paths_converted = []
+x = []
+y = []
+for path in all_paths:
+    path_converted = []
+    for item in path:
+        xy = (item[0],h-item[1])
+        x.append(item[0])
+        y.append(h-item[1])
+        path_converted.append(xy)
+    all_paths_converted.append(path_converted)
 
+plt.plot(x,y)
+plt.show()
 
 
 
