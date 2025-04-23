@@ -137,7 +137,7 @@ def astar(inpt_map,step_dist,start_xyt,goal_xy):
                 continue
             c_c2c = int(round(m_c2c[m_coords(p_xyt)] + step_dist))
             c_ctg = heuristic_c2g(c_xyt,goal_xy)
-            c_ctot = c_c2c+(c_ctg)
+            c_ctot = c_c2c+(c_ctg*1.5) # WEIGHTED
             c_node = (c_ctot,c_xyt)
             previous_ctot = m_ctot[m_coords(c_xyt)]
             if previous_ctot == 0:
@@ -245,8 +245,8 @@ for path in all_paths:
         path_converted.append(xy)
     all_paths_converted.append(path_converted)
 
-plt.plot(x,y)
-plt.show()
+# plt.plot(x,y)
+# plt.show()
 
 
 
