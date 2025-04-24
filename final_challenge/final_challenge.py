@@ -17,6 +17,7 @@ robot_position = [0,0,0]
 ser = serial.Serial('/dev/ttyUSB0', 9600)
 IMU_ready = False
 def read_serial_data():
+	print("read_serial_data")
 	ser_count = 0 # Initial serial count
 	global robot_position
 	global IMU_ready # Boolean to prevent any movement until first 10 lines are read
@@ -272,7 +273,7 @@ def object_tracker():
 				box = cv2.boxPoints(rect)
 				box = np.int0(box)
 				cv2.drawContours(image, [box], 0, (255,0,0), 1)
-				cv2.putText(image,str(block_coords),(int(rect_x+rect_w/2),int(rect_y+rect_h/2)),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,0),1)
+				#cv2.putText(image,str(block_coords),(int(rect_x+rect_w/2),int(rect_y+rect_h/2)),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,0),1)
 				if b_i == 0:
 					rotate_target_closest_blue = rotate_target
 					pixel_y_closest_blue = rect_y
@@ -321,7 +322,7 @@ def object_tracker():
 					rotate_target_closest_red = rotate_target
 					pixel_y_closest_red = rect_y
 				r_i += 1
-		cv2.putText(image,"Robot position: "+str(robot_position),(10,50),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),1))	
+		cv2.putText(image,"Robot position: "+str(robot_position),(10,50),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),1)
 		cv2.imshow("Frame", image)
 		key = cv2.waitKey(1) & 0xFF
 		rawCapture.truncate(0)
@@ -341,7 +342,7 @@ tracking_thread.start()
 
 
 def turn_by_angle(angle):
-	
+	print("turning "+str(angle)+" degrees")
 	start_angle = robot_position[2]
 	if angle < 0:
 		rw = rb
@@ -353,7 +354,7 @@ def turn_by_angle(angle):
 	i = 0
 	while True:
 
-		angle_turned = ((current_angle_imu-start_angle+540)%360-180)*-1 # Negative output = moved clockwise 
+		angle_turned = ((robot_position[2]-start_angle+540)%360-180)*-1 # Negative output = moved clockwise 
 		delay = 0.5 - (0.1*(int((abs(angle_turned)/abs(angle))*5)))
 		if delay > 0.5:
 			delay = 0.5
@@ -378,6 +379,7 @@ def turn_by_angle(angle):
 	pi.set_PWM_dutycycle(lb,0)
 	
 def move_forward_by_distance(inpt_dist):
+	print("moving forward "+str(inpt_dist)+" cm")
 	global robot_position
 	start_angle = robot_position[2]
 	travel = 0
@@ -428,6 +430,7 @@ def move_forward_by_distance(inpt_dist):
 	pi.set_PWM_dutycycle(rb,0)	
 
 def move_backward_by_distance(inpt_dist):
+	print("moving backwards "+str(inpt_dist)+" cm")
 	global robot_position
 	start_angle = robot_position[2]
 	travel = 0
@@ -475,9 +478,10 @@ def move_backward_by_distance(inpt_dist):
 
 	
 def move_forward_to_point(point_xy,isblock):
-	(x1,y1) = current_position[0],current_position[1]
+	print("moving to "+str(point_xy))
+	(x1,y1) = robot_position[0],robot_position[1]
 	(x2,y2) = point_xy
-	current_angle = current_position[2]
+	current_angle = robot_position[2]
 	x3 = x2-x1
 	y3 = y2-y1
 	angle_to_reach = np.degrees(np.arctan2(y3,x3))
@@ -493,6 +497,7 @@ def move_forward_to_point(point_xy,isblock):
 
 	
 def pick_up_block(cycle):
+	print("picking up block")
 	duty = int(round(0.5*255))
 	i = 0
 	color = cycle%3
@@ -564,6 +569,7 @@ def pick_up_block(cycle):
 
 # ULTRASONIC SENSOR SETUP-----------------------------------------------
 def ping_distance():
+	print("pinging distance")
 	distance_readings = []
 	for i in range(0,21):
 		pi.write(trig,0)
@@ -596,81 +602,82 @@ const_home = (61,305)
 land_home = (30,30)
 
 def get_goal_block(cycle_num,blue_blocks,green_blocks,red_blocks):
-    color = cycle_num%3
-    temp_heap = []
-    remaining_block_coords = []
-    if color == 0:
-        print("blue")
-        block_list = blue_blocks
-    elif color == 1:
-        print("green")
-        block_list = green_blocks   
-    elif color == 2:
-        print("red")
-        block_list = red_blocks
+	print("getting goal block")
+	color = cycle_num%3
+	temp_heap = []
+	remaining_block_coords = []
+	if color == 0:
+		print("blue")
+		block_list = blue_blocks
+	elif color == 1:
+		print("green")
+		block_list = green_blocks   
+	elif color == 2:
+		print("red")
+		block_list = red_blocks
         
-    for block in block_list:
-        if block != (0,0):
-            d = euc_distance(block,const_home)
-            heapq.heappush(temp_heap,(d,block))
-    goal = heapq.heappop(temp_heap)[1]
-    for block in block_list:
-        if block == goal:
-            block_list.remove(block)
-            block_list.append((0,0))
-    if color == 0:
-        blue_blocks = block_list
-    elif color == 1:
-        green_blocks = block_list
-    elif color == 2:
-        red_blocks = block_list
-    for block in blue_blocks:
-        if block != (0,0):
-            remaining_block_coords.append((block))
-    for block in green_blocks:
-        if block != (0,0):
-            remaining_block_coords.append((block))
-    for block in red_blocks:
-        if block != (0,0):
-            remaining_block_coords.append((block))
+	for block in block_list:
+		if block != (0,0):
+			d = euc_distance(block,const_home)
+			heapq.heappush(temp_heap,(d,block))
+	goal = heapq.heappop(temp_heap)[1]
+	for block in block_list:
+		if block == goal:
+			block_list.remove(block)
+			block_list.append((0,0))
+	if color == 0:
+		blue_blocks = block_list
+	elif color == 1:
+		green_blocks = block_list
+	elif color == 2:
+		red_blocks = block_list
+	for block in blue_blocks:
+		if block != (0,0):
+			remaining_block_coords.append((block))
+	for block in green_blocks:
+		if block != (0,0):
+			remaining_block_coords.append((block))
+	for block in red_blocks:
+		if block != (0,0):
+			remaining_block_coords.append((block))
     
-    return goal,blue_blocks,green_blocks,red_blocks,remaining_block_coords
+	return goal,blue_blocks,green_blocks,red_blocks,remaining_block_coords
     
 
 
 def find_buffer_set(block_coords):
-    buffer_set = set()
-    b_map = np.zeros((366,366,1),dtype=np.uint8)
-    b_map  = cv2.rectangle(b_map,(0,0),(365,365),(255,255,255),20)
+	buffer_set = set()
+	b_map = np.zeros((366,366,1),dtype=np.uint8)
+	b_map  = cv2.rectangle(b_map,(0,0),(365,365),(255,255,255),20)
     
-    for item in block_coords:
-        b_map = cv2.circle(b_map,item,23,255,-1)
+	for item in block_coords:
+		b_map = cv2.circle(b_map,item,23,255,-1)
     
-    buffer_coords = np.where(b_map==255)
-    for i in range(0,len(buffer_coords[0])):
-        buffer_set.add((buffer_coords[1][i],buffer_coords[0][i]))
-    return b_map, buffer_set
+	buffer_coords = np.where(b_map==255)
+	for i in range(0,len(buffer_coords[0])):
+		buffer_set.add((buffer_coords[1][i],buffer_coords[0][i]))
+	return b_map, buffer_set
 	
 def line_cross(p1,p2,inpt_bufferset):
-    lc_map = np.zeros((h,w,1))
-    lc_map = cv2.line(lc_map,p1[:2],p2[:2],255,1)
-    line_coords = np.where(lc_map==255)
-    for i in range(0,len(line_coords[0])):
-        if (line_coords[1][i],line_coords[0][i]) in inpt_bufferset:
-            return True
-    return False
+	lc_map = np.zeros((366,366,1))
+	lc_map = cv2.line(lc_map,p1[:2],p2[:2],255,1)
+	line_coords = np.where(lc_map==255)
+	for i in range(0,len(line_coords[0])):
+		if (line_coords[1][i],line_coords[0][i]) in inpt_bufferset:
+			return True
+	return False
 
 def get_child_coords(inpt_point,inpt_angle,inpt_step):
-    px,py = inpt_point[:2]
-    cx = int(round(inpt_step*np.cos(np.deg2rad(inpt_angle))+px))
-    cy = int(round(inpt_step*np.sin(np.deg2rad(inpt_angle))+py))
-    return((cx,cy,inpt_angle))
+	px,py = inpt_point[:2]
+	cx = int(round(inpt_step*np.cos(np.deg2rad(inpt_angle))+px))
+	cy = int(round(inpt_step*np.sin(np.deg2rad(inpt_angle))+py))
+	return((cx,cy,inpt_angle))
 
 
 def m_coords(point):
-    x,y,t = point
-    t = int(t/45)
-    return y,x,t
+	x,y,t = point
+	t = int(t/45)
+	return y,x,t
     
 def cv2_to_xy(point):
 	x,y = point
@@ -683,104 +690,101 @@ def xy_to_cv2(point):
 	return (x,y)
 
 def a_star(goal,step_dist,block_coords_xy):
-    start_xy = (robot_position[0],robot_position[1])
-    start_xy = xy_to_cv2(start_xy)
-    start_t = (360-robot_position[2])%360
-    start_xyt = (start_xy[0],start_xy[1],start_t)
-    goal = xy_to_cv2(goal)
+	print("a star")
+	start_xy = (robot_position[0],robot_position[1])
+	start_xy = xy_to_cv2(start_xy)
+	start_t = (360-robot_position[2])%360
+	start_xyt = (start_xy[0],start_xy[1],start_t)
+	goal = xy_to_cv2(goal)
     
-    block_coords = []
-    for item in block_coords_xy:
-        block_coords.append((xy_to_cv2(item)))
+	block_coords = []
+	for item in block_coords_xy:
+		block_coords.append((xy_to_cv2(item)))
     
     
-    h = 366
-    w = 366
-    r_radius = 20
-    b_radius = 3
-    a_map,buffer_set = find_buffer_set(block_coords)
+	h = 366
+	w = 366
+	r_radius = 20
+	b_radius = 3
+	a_map,buffer_set = find_buffer_set(block_coords)
 	
-    m_c2c = np.zeros((h,w,8))
-    m_ctot = np.zeros((h,w,8))
-    m_px = np.zeros((h,w,8))
-    m_py = np.zeros((h,w,8))
-    m_pt = np.zeros((h,w,8))
+	m_c2c = np.zeros((h,w,8))
+	m_ctot = np.zeros((h,w,8))
+	m_px = np.zeros((h,w,8))
+	m_py = np.zeros((h,w,8))
+	m_pt = np.zeros((h,w,8))
     
-    open_list = []
-    closed_list = []
-    heapq.heapify(open_list)
-    heapq.heapify(closed_list)
-    first_node = (euc_distance(start_xyt,goal),start_xyt)
-    heapq.heappush(open_list,first_node)
-    m_c2c[m_coords(start_xyt)] = 0
-    m_ctot[m_coords(start_xyt)] = first_node[0]
-    m_px[m_coords(start_xyt)] = start_xyt[0]
-    m_py[m_coords(start_xyt)] = start_xyt[1]
-    m_pt[m_coords(start_xyt)] = start_xyt[2]
+	open_list = []
+	closed_list = []
+	heapq.heapify(open_list)
+	heapq.heapify(closed_list)
+	first_node = (euc_distance(start_xyt,goal),start_xyt)
+	heapq.heappush(open_list,first_node)
+	m_c2c[m_coords(start_xyt)] = 0
+	m_ctot[m_coords(start_xyt)] = first_node[0]
+	m_px[m_coords(start_xyt)] = start_xyt[0]
+	m_py[m_coords(start_xyt)] = start_xyt[1]
+	m_pt[m_coords(start_xyt)] = start_xyt[2]
     
-    while True:
+	while True:
 
-        parent_node = heapq.heappop(open_list)
-        heapq.heappush(closed_list,parent_node)
+		parent_node = heapq.heappop(open_list)
+		heapq.heappush(closed_list,parent_node)
         
-        p_xyt = parent_node[1]
-        if euc_distance(p_xyt,goal) < 20:
-            break
-        for item in [-90, -45, 0, 45, 90]:
-            ang = p_xyt[2] + item
-            ang = int(ang%360)
-            c_xyt = get_child_coords(p_xyt,ang,step_dist)
-            a_map = cv2.line(a_map,p_xyt[:2],c_xyt[:2],255,1)
-            cv2.imshow('amap',a_map)
-            cv2.waitKey(1)
-            #print(c_xyt)
-            if c_xyt[:2] in buffer_set:
-                #print("in buffer set")
-                continue
-            if line_cross(p_xyt,c_xyt,buffer_set):
-                #print("line cross")
-                continue
-            c_c2c = int(round(m_c2c[m_coords(p_xyt)] + step_dist))
-            c_ctg = euc_distance(c_xyt,goal)
-            c_ctot = c_c2c+(c_ctg)
-            c_node = (c_ctot,c_xyt)
-            previous_ctot = m_ctot[m_coords(c_xyt)]
-            if previous_ctot == 0:
-                heapq.heappush(open_list,c_node)
-                #print("push1")
-                m_c2c[m_coords(c_xyt)] = c_c2c
-                m_ctot[m_coords(c_xyt)] = c_ctot
-                m_px[m_coords(c_xyt)] = int(p_xyt[0])
-                m_py[m_coords(c_xyt)] = int(p_xyt[1])
-                m_pt[m_coords(c_xyt)] = int(p_xyt[2])
-            else:
-                if previous_ctot > c_ctot:
-                    previous_node = (previous_ctot,c_xyt)
-                    open_list.remove(previous_node)
-                    heapq.heappush(open_list,c_node)
-                    #print("push2")
-                    m_c2c[m_coords(c_xyt)] = c_c2c
-                    m_ctot[m_coords(c_xyt)] = c_ctot
-                    m_px[m_coords(c_xyt)] = p_xyt[0]
-                    m_py[m_coords(c_xyt)] = p_xyt[1]
-                    m_pt[m_coords(c_xyt)] = p_xyt[2]
-    final_path = []
-    path_xyt = p_xyt
-    while path_xyt != start_xyt:
-        final_path.append(path_xyt[:2])
-        px = int(m_px[m_coords(path_xyt)])
-        py = int(m_py[m_coords(path_xyt)])
-        pt = int(m_pt[m_coords(path_xyt)])
-        path_xyt = (px,py,pt)
-    final_path.reverse()
+		p_xyt = parent_node[1]
+		if euc_distance(p_xyt,goal) < 20:
+			break
+		for item in [-90, -45, 0, 45, 90]:
+			ang = p_xyt[2] + item
+			ang = int(ang%360)
+			c_xyt = get_child_coords(p_xyt,ang,step_dist)
+			a_map = cv2.line(a_map,p_xyt[:2],c_xyt[:2],255,1)
+			cv2.imshow('amap',a_map)
+			cv2.waitKey(1)
+			if c_xyt[:2] in buffer_set:
+				continue
+			if line_cross(p_xyt,c_xyt,buffer_set):
+				continue
+			c_c2c = int(round(m_c2c[m_coords(p_xyt)] + step_dist))
+			c_ctg = euc_distance(c_xyt,goal)
+			c_ctot = c_c2c+(c_ctg)
+			c_node = (c_ctot,c_xyt)
+			previous_ctot = m_ctot[m_coords(c_xyt)]
+			if previous_ctot == 0:
+				heapq.heappush(open_list,c_node)
+				m_c2c[m_coords(c_xyt)] = c_c2c
+				m_ctot[m_coords(c_xyt)] = c_ctot
+				m_px[m_coords(c_xyt)] = int(p_xyt[0])
+				m_py[m_coords(c_xyt)] = int(p_xyt[1])
+				m_pt[m_coords(c_xyt)] = int(p_xyt[2])
+			else:
+				if previous_ctot > c_ctot:
+					previous_node = (previous_ctot,c_xyt)
+					open_list.remove(previous_node)
+					heapq.heappush(open_list,c_node)
+					m_c2c[m_coords(c_xyt)] = c_c2c
+					m_ctot[m_coords(c_xyt)] = c_ctot
+					m_px[m_coords(c_xyt)] = p_xyt[0]
+					m_py[m_coords(c_xyt)] = p_xyt[1]
+					m_pt[m_coords(c_xyt)] = p_xyt[2]
+	final_path = []
+	path_xyt = p_xyt
+	while path_xyt != start_xyt:
+		final_path.append(path_xyt[:2])
+		px = int(m_px[m_coords(path_xyt)])
+		py = int(m_py[m_coords(path_xyt)])
+		pt = int(m_pt[m_coords(path_xyt)])
+		path_xyt = (px,py,pt)
+	final_path.reverse()
         
-    final_path_xy = []
-    for item in final_path:
-        final_path_xy.append((cv2_to_xy(item)))
+	final_path_xy = []
+	for item in final_path:
+		final_path_xy.append((cv2_to_xy(item)))
 	
-    return final_path_xy
+	return final_path_xy
 
 def find_next_block_path(cycle,blue_blocks,green_blocks,red_blocks):
+	print("finding next block path")
 	goal,blue_blocks,green_blocks,red_blocks,remain_blocks = get_goal_block(cycle,blue_blocks,green_blocks,red_blocks)
 	step_size = 30
 	while True:
@@ -794,6 +798,7 @@ def find_next_block_path(cycle,blue_blocks,green_blocks,red_blocks):
 
 #HOME POSITION ---------------------------------------------------------
 def home_position():
+	print("homing position")
 	angle_to_wall = 180 - robot_position[2]
 	turn_by_angle(angle_to_wall)
 	x_pos = ping_distance()
@@ -803,13 +808,14 @@ def home_position():
 
 #-----------------------------------------------------------------------
 def switch_updater(update_block_pos):
-	
+	print("switch updater")
 	if update_block_pos:
 		return False
 	else:
 		return True
 
 def grab_block(block_path,cycle):
+	print("grabbing block")
 	isblock = False
 	for item in robot_path:
 		if item == robot_path[-1]:
@@ -818,6 +824,7 @@ def grab_block(block_path,cycle):
 	pick_up_block(cycle)
 
 def re_home(remain_block_pos):
+	print("rehoming")
 	step_size = 30
 	while True:
 		try:
@@ -831,6 +838,7 @@ def re_home(remain_block_pos):
 	return x_pos, y_pos
 
 def drop_off(cycle,remain_block_pos):
+	print("dropping off")
 	pre_goal_x = 30*(1+(cycle%3))
 	pre_goal_y = 260
 	pre_goal_coords = (pre_goal_x,pre_goal_y)
@@ -853,27 +861,6 @@ def drop_off(cycle,remain_block_pos):
 	move_backward_by_distance(122-robot_position[0])
 	
 	
-	
-
-# SEQUENTIAL ACTIONS
-# start facing construction zone
-# turn 90, ping and update x position
-# turn 90, ping and update y position
-# turn 180
-
-# turn off block position updating
-# path plan to nearest block
-# move along path
-# grab block
-# path plan to first dropoff
-# move along path
-# release block and reverse to 122,122
-# turn to face left 
-# turn on block position updating 
-# sweep 270
-
-
-# repeat above until all complete
 
 blocks_acquired = 0
 update_block_positions = True
@@ -895,6 +882,7 @@ while blocks_acquired < 9:
 	robot_position[0],robot_position[1] = re_home(remaining_block_coords)
 	drop_off(blocks_acquired,remaining_block_coords)
 	blocks_acquired += 1
+	print("blocks acquired: "+str(blocks_acquired))
 	update_block_positions = switch_updater(update_block_positions)
 	turn_by_angle(270)
 
