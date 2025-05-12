@@ -127,9 +127,10 @@ distance_green = 0
 rotate_target_closest_red = 0
 pixel_y_closest_red = 0
 distance_red = 0
-update_blue = True
-update_green = True
-update_red = True
+blue_inpath = False
+green_inpath = False
+red_inpath = False
+
 
 
 def euc_distance(p1,p2):
@@ -222,6 +223,9 @@ def object_tracker():
 	global distance_blue
 	global distance_green
 	global distance_red
+	global blue_inpath
+	global green_inpath
+	global red_inpath
 	camera = PiCamera()
 	camera.resolution = (640, 480)
 	camera.framerate = 24
@@ -276,57 +280,81 @@ def object_tracker():
 		green_contours = [cnt for cnt in green_contours if cv2.contourArea(cnt) < max_area]
 		red_contours = [cnt for cnt in red_contours if cv2.contourArea(cnt) < max_area]
 
-		if len(blue_contours) > 0:
-			blue_contour = sorted(blue_contours, key=cv2.contourArea, reverse=True)[-1]
+		blue_contours = sorted(blue_contours, key=cv2.contourArea, reverse=True)[:(min(3,len(blue_contours)))]
+		green_contours = sorted(green_contours,key=cv2.contourArea, reverse=True)[:(min(3,len(green_contours)))]
+		red_contours = sorted(red_contours,key=cv2.contourArea, reverse=True)[:(min(3,len(red_contours)))]
 
-			rect = cv2.minAreaRect(blue_contour)
-			(rect_x,rect_y),(rect_w,rect_h),rect_a = rect
-			if rect_w>rect_h:
-				rect_w, rect_h = rect_h, rect_w
-			rotate_target = round((320-rect_x)*0.061)
-			distance_blue = 5360.8*(rect_h**-1.219)+23
-			if 0.5 < (rect_h/rect_w) < 2:
-				box = cv2.boxPoints(rect)
-				box = np.int0(box)
-				cv2.drawContours(image, [box], 0, (255,0,0), 1)
-				cv2.putText(image,str(distance_blue),(int(rect_x+rect_w/2),int(rect_y+rect_h/2)),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,0),1)
-				rotate_target_closest_blue = rotate_target
-				pixel_y_closest_blue = rect_y
+		blue_inpath = False
+		green_inpath = False
+		red_inpath = False
+
+
+		if len(blue_contours) > 0:
+			rotate_target_closest_blue = 360
+			for blue_contour in blue_contours:
+				rect = cv2.minAreaRect(blue_contour)
+				(rect_x,rect_y),(rect_w,rect_h),rect_a = rect
+				if rect_w>rect_h:
+					rect_w, rect_h = rect_h, rect_w
+	
+				if 0.5 < (rect_h/rect_w) < 2:
+					rotate_target = round((320-rect_x)*0.061)
+					if rotate_target < rotate_target_closest_blue:
+						rotate_target_closest_blue = rotate_target
+						pixel_y_closest_blue = rect_y
+					distance_blue = 5360.8*(rect_h**-1.219)+23
+					box = cv2.boxPoints(rect)
+					box = np.int0(box)
+					if inpath(box):
+						blue_inpath = True
+					cv2.drawContours(image, [box], 0, (255,0,0), 1)
+					cv2.putText(image,str(distance_blue),(int(rect_x+rect_w/2),int(rect_y+rect_h/2)),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,0),1)
+				
 				
 		if len(green_contours) > 0:
-			green_contour = sorted(green_contours, key=cv2.contourArea, reverse=True)[-1]
-
-			rect = cv2.minAreaRect(green_contour)
-			(rect_x,rect_y),(rect_w,rect_h),rect_a = rect
-			if rect_w>rect_h:
-				rect_w, rect_h = rect_h, rect_w
-			rotate_target = round((320-rect_x)*0.061)
-			distance_green = 5360.8*(rect_h**-1.219)+23
-			if 0.5 < (rect_h/rect_w) < 2:
-				box = cv2.boxPoints(rect)
-				box = np.int0(box)
-				cv2.drawContours(image, [box], 0, (255,0,0), 1)
-				cv2.putText(image,str(distance_green),(int(rect_x+rect_w/2),int(rect_y+rect_h/2)),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),1)
-				rotate_target_closest_green = rotate_target
-				pixel_y_closest_green = rect_y
+			rotate_target_closest_green = 360
+			for green_contour in green_contours:
+				rect = cv2.minAreaRect(green_contour)
+				(rect_x,rect_y),(rect_w,rect_h),rect_a = rect
+				if rect_w>rect_h:
+					rect_w, rect_h = rect_h, rect_w
+	
+				if 0.5 < (rect_h/rect_w) < 2:
+					rotate_target = round((320-rect_x)*0.061)
+					if rotate_target < rotate_target_closest_green:
+						rotate_target_closest_green = rotate_target
+						pixel_y_closest_green = rect_y
+					distance_green= 5360.8*(rect_h**-1.219)+23
+					box = cv2.boxPoints(rect)
+					box = np.int0(box)
+					if inpath(box):
+						green_inpath = True
+					cv2.drawContours(image, [box], 0, (255,0,0), 1)
+					cv2.putText(image,str(distance_green),(int(rect_x+rect_w/2),int(rect_y+rect_h/2)),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),1)
 				
 		if len(red_contours) > 0:
-			red_contour = sorted(red_contours, key=cv2.contourArea, reverse=True)[-1]
-
-			rect = cv2.minAreaRect(red_contour)
-			(rect_x,rect_y),(rect_w,rect_h),rect_a = rect
-			if rect_w>rect_h:
-				rect_w, rect_h = rect_h, rect_w
-			rotate_target = round((320-rect_x)*0.061)
-			distance_red = 5360.8*(rect_h**-1.219)+23
-			if 0.5 < (rect_h/rect_w) < 2:
-				box = cv2.boxPoints(rect)
-				box = np.int0(box)
-				cv2.drawContours(image, [box], 0, (255,0,0), 1)
-				cv2.putText(image,str(distance_red),(int(rect_x+rect_w/2),int(rect_y+rect_h/2)),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),1)
-				rotate_target_closest_red = rotate_target
-				pixel_y_closest_red = rect_y
-				
+			rotate_target_closest_red = 360
+			for red_contour in red_contours:
+				rect = cv2.minAreaRect(red_contour)
+				(rect_x,rect_y),(rect_w,rect_h),rect_a = rect
+				if rect_w>rect_h:
+					rect_w, rect_h = rect_h, rect_w
+	
+				if 0.5 < (rect_h/rect_w) < 2:
+					rotate_target = round((320-rect_x)*0.061)
+					if rotate_target < rotate_target_closest_red:
+						rotate_target_closest_red = rotate_target
+						pixel_y_closest_red = rect_y
+					distance_red= 5360.8*(rect_h**-1.219)+23
+					box = cv2.boxPoints(rect)
+					box = np.int0(box)
+					if inpath(box):
+						red_inpath = True
+					cv2.drawContours(image, [box], 0, (255,0,0), 1)
+					cv2.putText(image,str(distance_red),(int(rect_x+rect_w/2),int(rect_y+rect_h/2)),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),1)
+		
+		cv2.line(image,(0,480),(320,245),(255,255,255),1)
+		cv2.line(image,(640,480),(320,245),(255,255,255),1)
 		cv2.putText(image,"Robot position: "+str(robot_position),(10,50),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),1)
 		cv2.imshow("Frame", image)
 		key = cv2.waitKey(1) & 0xFF
@@ -340,6 +368,10 @@ tracking_thread = threading.Thread(target=object_tracker)
 tracking_thread.start()
 
 #MOVEMENT COMMANDS------------------------------------------------------
+
+
+
+
 
 
 def turn_to_angle(goal_angle):
@@ -514,6 +546,46 @@ def scaled_delay(x, min_x=40, max_x=100, min_d=0.1, max_d=2):
     else:
         return min_d + (x - min_x) * (max_d - min_d) / (max_x - min_x)
 
+
+def turn_until_clear_path(cycle):
+	color = cycle%3
+	duty = int(round(0.6*255))
+	delay = 0.1
+	start_angle = robot_position[2]
+	angle_turned = (robot_position[2]+start_angle+180)%360-180
+	while True:
+
+		if color == 2:
+			if blue_inpath and not green_inpath and not red_inpath:
+				pi.set_PWM_dutycycle(lb,0)
+				pi.set_PWM_dutycycle(rf,0)
+				pi.set_PWM_dutycycle(lf,0)
+				pi.set_PWM_dutycycle(rb,0)
+				break
+		elif color == 1:
+			if green_inpath and not blue_inpath and not red_inpath:
+				pi.set_PWM_dutycycle(lb,0)
+				pi.set_PWM_dutycycle(rf,0)
+				pi.set_PWM_dutycycle(lf,0)
+				pi.set_PWM_dutycycle(rb,0)
+				break
+		elif color == 0:
+			if red_inpath and not blue_inpath and not green_inpath:
+				pi.set_PWM_dutycycle(lb,0)
+				pi.set_PWM_dutycycle(rf,0)
+				pi.set_PWM_dutycycle(lf,0)
+				pi.set_PWM_dutycycle(rb,0)
+				break
+		
+		pi.set_PWM_dutycycle(lf,duty)
+		pi.set_PWM_dutycycle(rb,duty)
+		pi.set_PWM_dutycycle(lb,0)
+		pi.set_PWM_dutycycle(rf,0)
+		time.sleep(delay)
+		pi.set_PWM_dutycycle(lf,0)
+		pi.set_PWM_dutycycle(rb,0)
+		time.sleep(0.3)
+	
 
 def pick_up_block(cycle):
 	print("picking up block")
@@ -1003,36 +1075,25 @@ def pick_up_block(cycle):
 # 	robot_position[0] = ping_distance()+13
 # 	move_backward_by_distance(100-robot_position[0])
 
+def inpath(box):
+    for point in box:
+        x = point[0]
+        y = point[1]
+        if y > 245 and y > 0.734 * x + 9.728 and y > -0.734 * x + 480:
+            return True
+    return False
+
+
 
 	
 
 
 blocks_acquired = 0
-time.sleep(4)
+time.sleep(3)
+turn_until_clear_path(blocks_acquired)
+pick_up_block(blocks_acquired)
 
 
-for i in range(0,9):
-	update_block_positions = True
-	time.sleep(0.2)
-	update_block_positions = False
-	turn_to_angle(10+(i*10))
-	
-robot_path,remaining_block_coords = find_next_block_path(blocks_acquired,blue_positions,green_positions,red_positions)
-grab_block(robot_path,blocks_acquired)
-drop_off(blocks_acquired,remaining_block_coords)
-blocks_acquired += 1
 
-while blocks_acquired < 9:
-	for i in range(0,27):
-		update_block_positions = True
-		time.sleep(0.2)
-		update_block_positions = False
-		turn_to_angle((180+(i*10))%360)
-	robot_path,remaining_block_coords = find_next_block_path(blocks_acquired,blue_positions,green_positions,red_positions)
-	grab_block(robot_path,blocks_acquired)
-	#robot_position[0],robot_position[1] = re_home(remaining_block_coords)
-	drop_off(blocks_acquired,remaining_block_coords)
-	blocks_acquired += 1
-	print("blocks acquired: "+str(blocks_acquired))
 
 
