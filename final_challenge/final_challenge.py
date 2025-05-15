@@ -23,6 +23,7 @@ from datetime import datetime
                 
 #IMU STARTUP -----------------------------------------------------------
 robot_position = [0,0,0]
+robot_positions = []
 ser = serial.Serial('/dev/ttyUSB0', 9600)
 IMU_ready = False
 def read_serial_data():
@@ -363,6 +364,7 @@ def object_tracker():
 		
 		
 		cv2.putText(image,"Robot position: "+str(robot_position),(10,50),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),1)
+		robot_positions.append(robot_position)
 		
 		# Send email of frame when prompted
 		if sendemail:
@@ -877,6 +879,14 @@ while blocks_acquired < 9:
 	blocks_acquired+=1
 	block_gripped = False
 #-----------------------------------------------------------------------
+
+xlist = []
+ylist = []
+for item in robot_positions:
+	xlist.append(item[0])
+	ylist.append(item[1])
+
+plt.plot(xlist,ylist)
 
 
 
