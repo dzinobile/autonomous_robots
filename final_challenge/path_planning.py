@@ -182,17 +182,17 @@ def astar(inpt_map,step_dist,start_xyt,goal_xy):
         px = int(m_px[m_coords(cxyt)])
         py = int(m_py[m_coords(cxyt)])
         display_map = cv2.line(display_map,(px,py),(cx,cy),(0,255,255),1)
-        #cv2.imshow('animation',display_map)
-        #cv2.waitKey(1)
+        cv2.imshow('animation',display_map)
+        cv2.waitKey(1)
     
     for i in range(1,len(final_path)):
 
         display_map = cv2.line(display_map,final_path[i-1],final_path[i],(0,0,255),2)
-        #cv2.imshow('animation',display_map)
-        #cv2.waitKey(1)
+        cv2.imshow('animation',display_map)
+        cv2.waitKey(1)
 
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
     return final_path
 
 
